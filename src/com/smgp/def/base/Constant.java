@@ -61,6 +61,10 @@ public class Constant {
 	
 	public static final long SMGP_EXIT_RESP = 0x80000006l;
 	
+	public static final long SMGP_ACTIVE_TEST = 0x00000004l;
+	
+	public static final long SMGP_ACTIVE_TEST_RESP = 0x80000004l;	
+	
 	public static final long SMGP_SUBMIT = 0x00000002l;
 	
 	public static final long SMGP_SUBMIT_RESP = 0x80000002l;

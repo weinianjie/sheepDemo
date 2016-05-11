@@ -10,15 +10,15 @@ import java.util.List;
 
 import com.smgp.def.SMGPMsg;
 import com.smgp.def.base.Constant;
+import com.smgp.def.command.ActiveTestResp;
+import com.smgp.def.command.Deliver;
+import com.smgp.def.command.DeliverResp;
 import com.smgp.def.command.Exit;
-import com.smgp.def.command.ExitResp;
 import com.smgp.def.command.Login;
 import com.smgp.def.command.LoginResp;
 import com.smgp.def.command.SMGPCommand;
 import com.smgp.def.command.Submit;
 import com.smgp.def.command.SubmitResp;
-import com.smgp.def.command.Deliver;
-import com.smgp.def.command.DeliverResp;
 
 /**
  * 电信SMGP3.0客户端测试
@@ -110,30 +110,45 @@ public class SMGPTest
 					byte[] deliverBytes = getAvailableBytes(is);
 					if(deliverBytes.length > 0)
 					{
-						System.out.println("get deliver length=" + deliverBytes.length);
+						System.out.println("get MSG length=" + deliverBytes.length);
 						msg = new SMGPMsg(deliverBytes);
-						Deliver deliver = (Deliver)msg.getBody().getCommand();
-						System.out.println("deliver.msgId=" + deliver.getMsgId() + ",deliver.isReport=" + deliver.getIsReport());
-						if(deliver.getIsReport() == 1)
+						
+						if(msg.getHead().getRequestId() == Constant.SMGP_ACTIVE_TEST)
 						{
-							// 状态报告 
-							System.out.println("status report, msgId=" + deliver.getReportContent().getMsgId() + ",stat=" + deliver.getReportContent().getStat() + ",err=" + deliver.getReportContent().getErr() + ",doneDate=" + deliver.getReportContent().getDoneDate());
-							DeliverResp deliverRespCmd = new DeliverResp();
-							deliverRespCmd.setStatus(0);
-							deliverRespCmd.setMsgId(deliver.getMsgId());
-							SMGPMsg msgSend = new SMGPMsg(deliverRespCmd);
+							// 服务器给发连接测试，需要回复，否则可能连接会被断掉
+							System.out.println(" get activeTest");
+							ActiveTestResp activeTestResp = new ActiveTestResp();
+							SMGPMsg msgSend = new SMGPMsg(activeTestResp);
 							msgSend.getHead().setSequenceId(msg.getHead().getSequenceId());// 复制流水号
 							os.write(msgSend.getByteData());
+						}else if(msg.getHead().getRequestId() == Constant.SMGP_DELIVER)
+						{
+							Deliver deliver = (Deliver)msg.getBody().getCommand();
+							System.out.println("deliver.msgId=" + deliver.getMsgId() + ",deliver.isReport=" + deliver.getIsReport());
+							if(deliver.getIsReport() == 1)
+							{
+								// 状态报告 
+								System.out.println("status report, msgId=" + deliver.getReportContent().getMsgId() + ",stat=" + deliver.getReportContent().getStat() + ",err=" + deliver.getReportContent().getErr() + ",doneDate=" + deliver.getReportContent().getDoneDate());
+								DeliverResp deliverRespCmd = new DeliverResp();
+								deliverRespCmd.setStatus(0);
+								deliverRespCmd.setMsgId(deliver.getMsgId());
+								SMGPMsg msgSend = new SMGPMsg(deliverRespCmd);
+								msgSend.getHead().setSequenceId(msg.getHead().getSequenceId());// 复制流水号
+								os.write(msgSend.getByteData());
+							}else
+							{
+								// 上行
+								System.out.println("mo content=" + deliver.getMsgContent());
+								DeliverResp deliverRespCmd = new DeliverResp();
+								deliverRespCmd.setStatus(0);
+								deliverRespCmd.setMsgId(deliver.getMsgId());
+								SMGPMsg msgSend = new SMGPMsg(deliverRespCmd);
+								msgSend.getHead().setSequenceId(msg.getHead().getSequenceId());// 复制流水号
+								os.write(msgSend.getByteData());
+							}
 						}else
 						{
-							// 上行
-							System.out.println("mo content=" + deliver.getMsgContent());
-							DeliverResp deliverRespCmd = new DeliverResp();
-							deliverRespCmd.setStatus(0);
-							deliverRespCmd.setMsgId(deliver.getMsgId());
-							SMGPMsg msgSend = new SMGPMsg(deliverRespCmd);
-							msgSend.getHead().setSequenceId(msg.getHead().getSequenceId());// 复制流水号
-							os.write(msgSend.getByteData());
+							System.out.println("other commandId=" + msg.getHead().getRequestId());
 						}
 					}
 				}
